@@ -1,9 +1,9 @@
 # SPDX-FileCopyrightText: 2024 Nextcloud GmbH and Nextcloud contributors
 # SPDX-License-Identifier: AGPL-3.0-or-later
 version = 1
-SPDX-PackageName = "Nextcloud Android"
-SPDX-PackageSupplier = "Nextcloud Android team <android@nextcloud.com>"
-SPDX-PackageDownloadLocation = "https://github.com/nextcloud/android"
+SPDX-PackageName = "MSHost Cloud Android"
+SPDX-PackageSupplier = "MSHost contributors"
+SPDX-PackageDownloadLocation = "https://github.com/BigShiShKa/mshost-cloud-android"
 
 [[annotations]]
 path = "gradle/wrapper/gradle-wrapper.jar"
@@ -45,4 +45,10 @@ SPDX-License-Identifier = "LicenseRef-NextcloudTrademarks"
 path = [".idea/**", "app/schemas/com.nextcloud.client.database.NextcloudDatabase/**.json", "app/screenshots/generic/debug/**.png", "app/src/main/res/values-**/strings.xml", "src/**/fastlane/metadata/**/*.txt", "src/versionDev/fastlane/metadata/android/**/changelogs/**.txt", "app/src/androidTest/assets/**", "app/src/test/resources/mockito-extensions/org.mockito.plugins.MockMaker", "app/src/**/google-services.json", "app/src/main/res/drawable-**dpi/checker_16_16.png", "app/src/main/res/raw/encryption_key_words.txt", "app/src/main/resources/ical4j.properties", "app/src/main/res/drawable-**dpi/apk.png", "app/src/main/res/drawable-**dpi/fdroid.png", "app/src/main/res/drawable-**dpi/playstore.png", "app/src/main/res/drawable-**dpi/background.png", "app/src/main/res/drawable-**dpi/background_nc18.png"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2016-2025 Nextcloud GmbH and Nextcloud contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+[[annotations]]
+path = ["app/src/generic/res/**/*.png"]
+precedence = "override"
+SPDX-FileCopyrightText = "2026 MSHost"
 SPDX-License-Identifier = "AGPL-3.0-or-later"

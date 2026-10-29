@@ -15,6 +15,11 @@ import org.gradle.internal.jvm.Jvm
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.io.FileInputStream
 import java.util.Properties
+import javax.xml.parsers.DocumentBuilderFactory
+import javax.xml.transform.OutputKeys
+import javax.xml.transform.TransformerFactory
+import javax.xml.transform.dom.DOMSource
+import javax.xml.transform.stream.StreamResult
 
 val shotTest = System.getenv("SHOT_TEST") == "true"
 val ciBuild = System.getenv("CI") == "true"
@@ -155,7 +160,7 @@ android {
         productFlavors {
             // used for f-droid
             register("generic") {
-                applicationId = "com.nextcloud.client"
+                applicationId = "io.github.bigshishka.mshostcloud"
                 dimension = "default"
             }
 
@@ -247,6 +252,17 @@ android {
 
 }
 
+val generateMshostBrandingResources = tasks.register<GenerateMshostBrandingResources>(
+    "generateMshostBrandingResources"
+) {
+    upstreamResources.set(layout.projectDirectory.dir("src/main/res"))
+    brandedResources.set(layout.buildDirectory.dir("generated/mshost/res"))
+}
+
+androidComponents.onVariants(androidComponents.selector().withFlavor("default" to "generic")) { variant ->
+    variant.sources.res?.addGeneratedSourceDirectory(generateMshostBrandingResources) { it.brandedResources }
+}
+
 ksp.arg("room.schemaLocation", "$projectDir/schemas")
 
 // Configure KSP for test variants
@@ -304,6 +320,7 @@ tasks.register<Pmd>("pmd") {
 }
 
 tasks.withType<SpotBugsTask>().configureEach {
+    useAuxclasspathFile.set(true)
     val variantNameCap = name.replace("spotbugs", "")
     val variantName = variantNameCap.substring(0, 1).lowercase() + variantNameCap.substring(1)
     dependsOn("compile${variantNameCap}Sources")
@@ -541,4 +558,65 @@ dependencies {
 
     // kotlinx.serialization
     implementation(libs.kotlinx.serialization.json)
+}
+
+abstract class GenerateMshostBrandingResources : DefaultTask() {
+    @get:InputDirectory
+    abstract val upstreamResources: DirectoryProperty
+
+    @get:OutputDirectory
+    abstract val brandedResources: DirectoryProperty
+
+    @TaskAction
+    fun generate() {
+        val names = setOf(
+            "compose_activity_label",
+            "file_migration_failed_dir_already_exists",
+            "single_sign_on_request_token",
+            "auto_upload_battery_optimization_reason",
+            "outdated_server",
+            "prefs_show_ecosystem_apps_summary",
+            "ecosystem_apps_more",
+            "store_full_desc",
+            "store_full_dev_desc"
+        )
+        val repository = "https://github.com/BigShiShKa/mshost-cloud-android"
+        val upstream = upstreamResources.get().asFile
+        val output = brandedResources.get().asFile
+        val factory = DocumentBuilderFactory.newInstance().apply {
+            setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
+        }
+        upstream.listFiles().orEmpty().filter { it.isDirectory && it.name.startsWith("values") }.forEach { folder ->
+            val source = folder.resolve("strings.xml")
+            if (!source.isFile) return@forEach
+            val builder = factory.newDocumentBuilder()
+            val document = builder.parse(source)
+            val target = builder.newDocument()
+            target.appendChild(target.createComment(
+                " SPDX-FileCopyrightText: 2026 MSHost contributors; " +
+                    "SPDX-License-Identifier: AGPL-3.0-or-later "
+            ))
+            val resources = target.createElement("resources")
+            target.appendChild(resources)
+            val strings = document.getElementsByTagName("string")
+            for (index in 0 until strings.length) {
+                val element = strings.item(index) as org.w3c.dom.Element
+                if (element.getAttribute("name") !in names || !element.textContent.contains("Nextcloud")) continue
+                val branded = target.importNode(element, true) as org.w3c.dom.Element
+                branded.textContent = element.textContent
+                    .replace(Regex("https://github[.]com/nextcloud/android[^\\s<]*"), repository)
+                    .replace(Regex("https://help[.]nextcloud[.]com[^\\s<]*"), repository)
+                    .replace(Regex("https://(?:www[.])?nextcloud[.]com[^\\s<]*"), repository)
+                    .replace("Nextcloud", "MSHost Cloud")
+                resources.appendChild(branded)
+            }
+            if (!resources.hasChildNodes()) return@forEach
+            val destination = output.resolve(folder.name).resolve("mshost-strings.xml")
+            destination.parentFile.mkdirs()
+            TransformerFactory.newInstance().newTransformer().apply {
+                setOutputProperty(OutputKeys.ENCODING, "utf-8")
+                setOutputProperty(OutputKeys.INDENT, "yes")
+            }.transform(DOMSource(target), StreamResult(destination))
+        }
+    }
 }

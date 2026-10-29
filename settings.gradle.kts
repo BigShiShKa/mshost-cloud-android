@@ -5,7 +5,7 @@
  * SPDX-FileCopyrightText: 2025 Jimly Asshiddiqy <jimly.asshiddiqy@accenture.com>
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
-rootProject.name = "Nextcloud"
+rootProject.name = "MSHost Cloud Android"
 
 pluginManagement {
     resolutionStrategy.eachPlugin {
@@ -25,6 +25,11 @@ pluginManagement {
     }
 }
 
+val mshostLocalProperties = java.util.Properties().apply {
+    val propertiesFile = file("local.properties")
+    if (propertiesFile.isFile) propertiesFile.inputStream().use { load(it) }
+}
+
 @Suppress("UnstableApiUsage")
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
@@ -36,7 +41,12 @@ dependencyResolutionManagement {
                 includeGroupByRegex("androidx.*")
             }
         }
-        mavenCentral()
+        if ((providers.gradleProperty("mshostMavenMirror").orNull
+                ?: mshostLocalProperties.getProperty("mshost.mavenMirror", "false")) == "true") {
+            maven("https://maven-central.storage-download.googleapis.com/maven2/")
+        } else {
+            mavenCentral()
+        }
         maven("https://jitpack.io")
     }
 }
